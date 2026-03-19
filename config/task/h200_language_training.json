@@ -1,0 +1,8 @@
+{
+    "application_scenario": "language",
+    "task_scenario": "training",
+    "task_type": "training",
+    "chip_type": "NVIDIA_H200",
+    "card_count": 8,
+    "test_case": "gpt2_wikitext"
+}
