@@ -1,0 +1,8 @@
+{
+    "application_scenario": "language",
+    "task_scenario": "inference",
+    "task_type": "inference",
+    "chip_type": "NVIDIA_H200",
+    "card_count": 8,
+    "test_case": "llm_throughput"
+}

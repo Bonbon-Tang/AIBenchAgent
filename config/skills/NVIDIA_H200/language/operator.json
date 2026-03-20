@@ -1,0 +1,7 @@
+{
+    "image_name": "registry.h.pjlab.org.cn/ailab-sys-sys_gpu/nemo:operate",
+    "start_command": "docker run -d --gpus all --shm-size=10g ",
+    "task_command": "cd speed_test/cuda_ops && mkdir -p build && cd build && rm -rf * && cmake -DCUDNN_INCLUDE_DIR=/opt/conda/lib/python3.11/site-packages/nvidia/cudnn/include -DCUDNN_LIBRARIES=/opt/conda/lib/python3.11/site-packages/nvidia/cudnn/lib/libcudnn.so.9  .. && make && cd ../../ && python test_gemm.py gemm_f16.csv 16 1",
+    "start_command_hints": "映射/mnt/nvme1n1/dongkaixing到容器中，工作目录切换到/mnt/nvme1n1/dongkaixing/sglang/3rdparty/AIChipBenchmark/operators",
+    "task_command_hints": "在容器内先cd到/mnt/nvme1n1/dongkaixing/sglang/3rdparty/AIChipBenchmark/operators目录，再执行编译和测试命令。cmake构建在speed_test/cuda_ops/build目录下。"
+}

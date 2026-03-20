@@ -1,0 +1,8 @@
+{
+    "application_scenario": "language",
+    "task_scenario": "operator",
+    "task_type": "operator",
+    "chip_type": "Ascend_910B",
+    "card_count": 8,
+    "test_case": "matmul"
+}
