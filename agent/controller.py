@@ -43,6 +43,8 @@ class EvaluationController:
     def run_evaluation(self, config: Dict[str, Any] = None, config_path: str = None, interactive: bool = True) -> Tuple[bool, Dict[str, Any]]:
         context = {"timestamp": datetime.now().isoformat()}
 
+        container_id = None
+
         try:
             self.logger.info("阶段1: 收集用户评测配置信息")
             print("\n" + "=" * 50)
@@ -103,7 +105,6 @@ class EvaluationController:
                 error_msg = exec_result.get("error", "脚本执行失败")
                 stage = exec_result.get("stage", "execute")
                 self.logger.error(f"脚本执行失败 (阶段: {stage}): {error_msg}")
-                self._cleanup(container_id)
                 return False, {"error": error_msg, "stage": stage, **exec_result}
 
             context.update(exec_result)
@@ -119,7 +120,6 @@ class EvaluationController:
             result_data = self._collect_results(container_id, context)
             context["evaluation_results"] = result_data
 
-            self._cleanup(container_id)
 
             print(f"\n评测完成!")
             print(f"结果: {json.dumps(result_data, ensure_ascii=False, indent=2, default=str)}")
@@ -128,10 +128,20 @@ class EvaluationController:
 
         except Exception as e:
             self.logger.error(f"评测流程异常: {str(e)}")
-            container_id = context.get("container_id")
-            if container_id:
-                self._cleanup(container_id)
             return False, {"error": f"评测流程异常: {str(e)}"}
+        except KeyboardInterrupt:
+            self.logger.error("评测流程中断")
+            return False, {"error": "评测流程中断"}
+        finally:
+            if container_id:
+                try:
+                    self.creator.sandbox.container_id = container_id
+                    self.creator.cleanup_container()
+                    self.logger.info(f"容器 {container_id} 已清理")
+                except Exception as e:
+                    self.logger.warning(f"容器清理失败: {str(e)}")
+
+        
 
     def _validate_config(self, config: Dict[str, Any]) -> Tuple[bool, str]:
         required_fields = ["application_scenario", "chip_type"]
