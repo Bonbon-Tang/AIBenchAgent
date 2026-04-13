@@ -1,0 +1,9 @@
+{
+  "task": "model_deployment",
+  "scenario": "llm",
+  "chips": "nvidia_h200",
+  "chip_num": 1,
+  "image_id": 70,
+  "tool_id": 27,
+  "name": "ProjectTen-v2-llm-demo"
+}

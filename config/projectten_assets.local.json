@@ -1,0 +1,22 @@
+{
+  "images": {
+    "70": {
+      "image_name": "registry.h.pjlab.org.cn/ailab-pj/vllm:0.16.2rc2.g21dfb842d.cu128",
+      "environment": {
+        "FLASHINFER_DISABLE_VERSION_CHECK": "1"
+      },
+      "volumes": [
+        "/mnt/nvme1n1/ml_research:/mnt/nvme1n1/ml_research"
+      ],
+      "model_id": "/mnt/nvme1n1/ml_research/models_4/qwen3-0.6b-local",
+      "base_url": "http://127.0.0.1:18080",
+      "start_command_hints": "容器启动后可在其中执行 vllm serve /mnt/nvme1n1/ml_research/models_4/qwen3-0.6b-local --host 0.0.0.0 --port 18080 --dtype bfloat16 --tensor-parallel-size 1 --max-model-len 1024 --gpu-memory-utilization 0.3。",
+      "task_command_hints": "优先检查 http://127.0.0.1:18080/v1/models 和 /v1/chat/completions；完成 5-10 次样例请求，统计成功率、平均延迟、P95，并写入 /workspace/results/result.json。"
+    }
+  },
+  "tools": {
+    "27": {
+      "test_case": "llm_throughput"
+    }
+  }
+}

@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import Dict, Any, Tuple, Optional, List
 from utils.llm import create_client
 from utils.llm import get_response_from_llm, extract_json_between_markers
+from adapters.projectten_v2 import ProjectTenV2Adapter
 
 class Collector:
 
@@ -30,6 +31,7 @@ class Collector:
         self.logger = logging.getLogger(__name__)
         self.system_prompt = self.get_default_system_prompt()
         self.max_interaction = 10
+        self.projectten_v2_adapter = ProjectTenV2Adapter()
     
     def get_default_system_prompt(self) -> str:
         return """
@@ -192,6 +194,10 @@ JSON的字段必须包含以上5个必须收集的信息，且格式必须严格
         with open(config_path, "r", encoding="utf-8") as f:
             config = json.load(f)
 
+        if self.projectten_v2_adapter.is_projectten_v2_config(config):
+            config = self.projectten_v2_adapter.normalize(config)
+            self.logger.info(f"检测到 ProjectTen v2 配置，已转换为 AIBench 内部配置: {config_path}")
+
         missing = [field for field in self.REQUIRED_FIELDS if not config.get(field)]
         if missing:
             raise ValueError(
@@ -214,7 +220,8 @@ JSON的字段必须包含以上5个必须收集的信息，且格式必须严格
                 f"芯片={config['chip_type']}, 任务={task_type}"
             )
 
-        config = self._attach_image_config(config)
+        if not config.get("image_config"):
+            config = self._attach_image_config(config)
 
         self.logger.info(f"从配置文件加载评测配置: {config_path}")
         return config

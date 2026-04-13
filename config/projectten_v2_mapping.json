@@ -1,0 +1,44 @@
+{
+  "chips": {
+    "nvidia_h200": "NVIDIA_H200",
+    "huawei_910b": "Ascend_910B"
+  },
+  "routes": {
+    "model_deployment:llm": {
+      "application_scenario": "language",
+      "task_type": "inference",
+      "task_scenario": "inference",
+      "default_test_case": "llm_throughput",
+      "image_config_defaults": {
+        "start_command": "docker run -d --gpus all --network host --ipc=host",
+        "task_command": "python /workspace/eval/model_inference_eval.py",
+        "start_command_hints": "使用 host 网络启动容器；如需模型服务，请在容器内启动 OpenAI 兼容接口并确保宿主机可访问。",
+        "task_command_hints": "在容器内执行模型镜像评测脚本，至少完成服务健康检查、样例推理请求、延迟统计，并将结果写入 /workspace/results/result.json。"
+      }
+    },
+    "model_deployment:multimodal": {
+      "application_scenario": "vision_multimodal",
+      "task_type": "inference",
+      "task_scenario": "inference",
+      "default_test_case": "multimodal_smoke",
+      "image_config_defaults": {
+        "start_command": "docker run -d --gpus all --network host --ipc=host",
+        "task_command": "python /workspace/eval/model_inference_eval.py",
+        "start_command_hints": "使用 host 网络启动容器；如需模型服务，请在容器内启动 OpenAI 兼容接口并确保宿主机可访问。",
+        "task_command_hints": "在容器内执行多模态模型镜像评测脚本，至少完成健康检查、样例请求、延迟统计，并将结果写入 /workspace/results/result.json。"
+      }
+    },
+    "operator:operator_accuracy": {
+      "application_scenario": "language",
+      "task_type": "operator",
+      "task_scenario": "operator",
+      "default_test_case": "operator_accuracy"
+    },
+    "operator:operator_accuracy_performance": {
+      "application_scenario": "language",
+      "task_type": "operator",
+      "task_scenario": "operator",
+      "default_test_case": "operator_perf"
+    }
+  }
+}
