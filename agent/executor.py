@@ -43,6 +43,12 @@ class Executor(EvalRetryAgent):
 脚本必须以 #!/bin/bash 开头，并且创建 /workspace/results 目录用于存放结果。
 最终结果需写入 result.json 文件。
 
+如果 image_config 中包含 service_profile：
+- 优先采用“yuansheng 风格”两阶段流程：先确保工作容器环境可用，再在容器内启动/检查模型服务，最后对 OpenAI 兼容接口做评测。
+- 优先检查 healthcheck_path 对应接口是否已经可用；如果已可用，不要重复启动服务。
+- 如果未就绪，再按 service_profile 中的 env 和 serve_command 启动服务。
+- 结果中至少包含 smoke_passed、success_count、fail_count、avg_latency_ms、p95_latency_ms。
+
 请以JSON格式返回结果，包含 script_content 和 script_name 字段。
 """
         return system_prompt
@@ -69,6 +75,10 @@ class Executor(EvalRetryAgent):
 
             if image_config.get('task_command_hints'):
                 prompt += f"- 评测脚本提示: {image_config['task_command_hints']}\n"
+            if image_config.get('service_profile'):
+                prompt += f"- 服务配置: {image_config['service_profile']}\n"
+            if image_config.get('container_name'):
+                prompt += f"- 优先复用容器: {image_config.get('container_name')}\n"
 
         skip_keys = {
             'chip_type', 'application_scenario', 'task_scenario', 'task_type',

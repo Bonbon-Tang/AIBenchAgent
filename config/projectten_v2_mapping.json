@@ -10,10 +10,22 @@
       "task_scenario": "inference",
       "default_test_case": "llm_throughput",
       "image_config_defaults": {
-        "start_command": "docker run -d --gpus all --network host --ipc=host",
+        "workspace_mode": "reuse_or_workspace_container",
+        "reuse_existing_container": true,
+        "preferred_container_name": "yuansheng",
+        "start_command": "docker run -dit --gpus all --network host --ipc=host -v /mnt/nvme1n1:/mnt/nvme1n1",
         "task_command": "python /workspace/eval/model_inference_eval.py",
-        "start_command_hints": "使用 host 网络启动容器；如需模型服务，请在容器内启动 OpenAI 兼容接口并确保宿主机可访问。",
-        "task_command_hints": "在容器内执行模型镜像评测脚本，至少完成服务健康检查、样例推理请求、延迟统计，并将结果写入 /workspace/results/result.json。"
+        "start_command_hints": "优先复用名为 yuansheng 的长期驻留工作容器；如果不存在，再使用 host 网络、IPC=host 和 /mnt/nvme1n1 挂载创建工作容器。",
+        "task_command_hints": "先在容器内设置 FLASHINFER_DISABLE_VERSION_CHECK=1，并按需指定 CUDA_VISIBLE_DEVICES；然后启动 vllm serve，使宿主机可通过 http://127.0.0.1:18080 访问，再完成健康检查、样例推理请求、延迟统计，并将结果写入 /workspace/results/result.json。",
+        "service_profile": {
+          "base_url": "http://127.0.0.1:18080",
+          "healthcheck_path": "/v1/models",
+          "chat_path": "/v1/chat/completions",
+          "env": {
+            "FLASHINFER_DISABLE_VERSION_CHECK": "1"
+          },
+          "serve_command": "vllm serve /mnt/nvme1n1/ml_research/models_4/qwen3-0.6b-local --host 0.0.0.0 --port 18080 --dtype bfloat16 --tensor-parallel-size 1 --max-model-len 1024 --gpu-memory-utilization 0.3"
+        }
       }
     },
     "model_deployment:multimodal": {

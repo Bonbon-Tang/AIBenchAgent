@@ -125,4 +125,15 @@ class ProjectTenV2Adapter:
             hint = tool_meta['task_command_hints']
             result['task_command_hints'] = f'{existing}\n{hint}'.strip() if existing else hint
 
+        service_profile = {}
+        service_profile.update(route.get('image_config_defaults', {}).get('service_profile', {}))
+        service_profile.update(image_meta.get('service_profile', {}))
+        if service_profile:
+            result['service_profile'] = service_profile
+            if service_profile.get('base_url') and not result.get('base_url'):
+                result['base_url'] = service_profile['base_url']
+
+        if image_meta.get('container_name') and not result.get('container_name'):
+            result['container_name'] = image_meta['container_name']
+
         return result

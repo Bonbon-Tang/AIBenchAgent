@@ -133,7 +133,7 @@ class EvaluationController:
             self.logger.error("评测流程中断")
             return False, {"error": "评测流程中断"}
         finally:
-            if container_id:
+            if container_id and not context.get('reused_existing_container'):
                 try:
                     self.creator.sandbox.container_id = container_id
                     self.creator.cleanup_container()
@@ -181,9 +181,9 @@ class EvaluationController:
         if container_id:
             try:
                 sandbox = self.creator.sandbox
-                sandbox.container_id = container_id
+                sandbox.set_container(container_id=container_id, container_name=context.get('container_name'))
                 output, stderr, exit_code = sandbox.execute(
-                    f"docker exec {container_id} cat /workspace/results/result.json"
+                    "cat /workspace/results/result.json"
                 )
                 if exit_code == 0 and output.strip():
                     result_json = json.loads(output.strip())

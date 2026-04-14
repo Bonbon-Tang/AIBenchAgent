@@ -2,15 +2,27 @@
   "images": {
     "70": {
       "image_name": "registry.h.pjlab.org.cn/ailab-pj/vllm:0.16.2rc2.g21dfb842d.cu128",
+      "container_name": "yuansheng",
+      "reuse_existing_container": true,
+      "workspace_mode": "reuse_or_workspace_container",
       "environment": {
         "FLASHINFER_DISABLE_VERSION_CHECK": "1"
       },
       "volumes": [
-        "/mnt/nvme1n1/ml_research:/mnt/nvme1n1/ml_research"
+        "/mnt/nvme1n1:/mnt/nvme1n1"
       ],
       "model_id": "/mnt/nvme1n1/ml_research/models_4/qwen3-0.6b-local",
       "base_url": "http://127.0.0.1:18080",
-      "start_command_hints": "容器启动后可在其中执行 vllm serve /mnt/nvme1n1/ml_research/models_4/qwen3-0.6b-local --host 0.0.0.0 --port 18080 --dtype bfloat16 --tensor-parallel-size 1 --max-model-len 1024 --gpu-memory-utilization 0.3。",
+      "service_profile": {
+        "base_url": "http://127.0.0.1:18080",
+        "healthcheck_path": "/v1/models",
+        "chat_path": "/v1/chat/completions",
+        "env": {
+          "FLASHINFER_DISABLE_VERSION_CHECK": "1"
+        },
+        "serve_command": "vllm serve /mnt/nvme1n1/ml_research/models_4/qwen3-0.6b-local --host 0.0.0.0 --port 18080 --dtype bfloat16 --tensor-parallel-size 1 --max-model-len 1024 --gpu-memory-utilization 0.3"
+      },
+      "start_command_hints": "优先复用已有 yuansheng 容器；如需新建，使用 host 网络、IPC=host，并挂载 /mnt/nvme1n1:/mnt/nvme1n1。",
       "task_command_hints": "优先检查 http://127.0.0.1:18080/v1/models 和 /v1/chat/completions；完成 5-10 次样例请求，统计成功率、平均延迟、P95，并写入 /workspace/results/result.json。"
     }
   },

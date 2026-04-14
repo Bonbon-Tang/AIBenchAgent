@@ -276,6 +276,25 @@ JSON:
             return False, {"error": "配置中缺少image_config，请确保Collector已提供镜像配置"}
         self.logger.info(f"获取到镜像配置: {image_config.get('image_name', '未知')}")
 
+        reuse_existing = bool(image_config.get('reuse_existing_container'))
+        preferred_container_name = image_config.get('container_name') or image_config.get('preferred_container_name')
+        if reuse_existing and preferred_container_name and self.sandbox.container_exists(preferred_container_name):
+            self.logger.info(f"检测到可复用工作容器: {preferred_container_name}")
+            ok, stdout, stderr, code = self.sandbox.start_existing_container(preferred_container_name)
+            if ok:
+                return True, {
+                    'container_id': self.sandbox.container_id,
+                    'container_name': preferred_container_name,
+                    'chip_type': chip_type,
+                    'application_scenario': application_scenario,
+                    'task_type': task_type,
+                    'image_config': image_config,
+                    'workspace_mode': image_config.get('workspace_mode', 'reuse_or_workspace_container'),
+                    'reused_existing_container': True,
+                    'start_output': stdout,
+                }
+            self.logger.warning(f"复用现有容器失败，将尝试创建新容器: {stderr or stdout}")
+
         # Creator 特有的回调
         def prepare_context(ctx, local_memory):
             context = ctx.copy()
