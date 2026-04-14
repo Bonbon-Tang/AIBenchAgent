@@ -5,10 +5,8 @@ import logging
 import json
 from datetime import datetime
 from typing import Dict, Any, Tuple
-from utils.llm import create_client
 from .collector import Collector
 from .creator import Creator
-from .evaluator import Evaluator
 from .executor import Executor
 from skills.skill_registry import SkillRegistry
 
@@ -18,27 +16,38 @@ class EvaluationController:
     def __init__(self, model_name: str = "claude-opus-4-6", skill_config_dir: str = None):
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
-
-        self.llm, self.model = create_client(model_name)
-
+        self.model_name = model_name
+        self.skill_config_dir = skill_config_dir
+        self.llm = None
+        self.model = model_name
         self.tool_registry = SkillRegistry(config_dir=skill_config_dir)
-
-        self.evaluator = Evaluator(self.llm, self.model)
         self.collector = Collector(
-            llm=self.llm, modelname=self.model, tool_selector=self.tool_registry
+            llm=None, modelname=self.model, tool_selector=self.tool_registry
         )
-        self.creator = Creator(
-            llm=self.llm,
-            model_name=self.model,
-            evaluator=self.evaluator,
-        )
-        self.executor = Executor(
-            llm=self.llm,
-            model_name=self.model,
-            evaluator=self.evaluator,
-        )
-
+        self.evaluator = None
+        self.creator = None
+        self.executor = None
         self.max_retries = 3
+
+    def _ensure_runtime(self, *, use_llm: bool):
+        if use_llm and self.llm is None:
+            from utils.llm import create_client
+            from .evaluator import Evaluator
+            self.llm, self.model = create_client(self.model_name)
+            self.evaluator = Evaluator(self.llm, self.model)
+            self.collector.llm = self.llm
+            self.collector.model = self.model
+        if self.creator is None or self.executor is None:
+            self.creator = Creator(
+                llm=self.llm,
+                model_name=self.model,
+                evaluator=self.evaluator,
+            )
+            self.executor = Executor(
+                llm=self.llm,
+                model_name=self.model,
+                evaluator=self.evaluator,
+            )
 
     def run_evaluation(self, config: Dict[str, Any] = None, config_path: str = None, interactive: bool = True) -> Tuple[bool, Dict[str, Any]]:
         context = {"timestamp": datetime.now().isoformat()}
@@ -71,6 +80,9 @@ class EvaluationController:
             context.update(user_config)
             self.logger.info(f"用户配置: {json.dumps(context, ensure_ascii=False, default=str)}")
             print(f"\n已收集配置信息: {json.dumps(user_config, ensure_ascii=False, indent=2, default=str)}")
+
+            use_llm = not bool(context.get('image_config', {}).get('service_profile'))
+            self._ensure_runtime(use_llm=use_llm)
 
             is_valid, validation_msg = self._validate_config(context)
             if not is_valid:

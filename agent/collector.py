@@ -8,8 +8,7 @@ import uuid
 import logging
 from datetime import datetime
 from typing import Dict, Any, Tuple, Optional, List
-from utils.llm import create_client
-from utils.llm import get_response_from_llm, extract_json_between_markers
+from utils.llm import extract_json_between_markers
 from adapters.projectten_v2 import ProjectTenV2Adapter
 
 class Collector:
@@ -153,6 +152,7 @@ JSON的字段必须包含以上5个必须收集的信息，且格式必须严格
 
             prompt = self.build_prompt(answer)
 
+            from utils.llm import get_response_from_llm
             text, msg_history = get_response_from_llm(
                 prompt,
                 client=self.llm,

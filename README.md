@@ -203,6 +203,8 @@ AIBenchAgent 当前保留原有测试主流程：
 python3 agent.py --config ...
 ```
 
+对于当前 `service_profile + yuansheng` 路径，AIBenchAgent 已改成优先走低依赖固定模板执行，不再要求 GPU 机先具备 `backoff` / LLM 依赖链才能启动。
+
 如果 GPU 机没有 `pip/pip3`，不要优先折腾宿主机 Python 环境；优先保证：
 
 - Docker 可用

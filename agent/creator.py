@@ -8,7 +8,6 @@ import random
 import string
 import logging
 from typing import Dict, Any, Tuple, Optional, List
-from utils.llm import get_response_from_llm, extract_json_between_markers
 from sandbox.docker_sandbox import DockerSandbox
 from .base import EvalRetryAgent
 
@@ -123,6 +122,7 @@ JSON:
             prompt = self.build_prompt(context)
 
             self.logger.debug(f"生成容器创建命令的提示词: {prompt[:200]}...")
+            from utils.llm import get_response_from_llm, extract_json_between_markers
             text, msg_history = get_response_from_llm(
                 prompt,
                 client=self.llm,

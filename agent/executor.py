@@ -4,7 +4,6 @@
 import os
 import time
 from typing import Dict, Any, Tuple, List
-from utils.llm import get_response_from_llm, extract_json_between_markers
 from .base import EvalRetryAgent
 from .templates import build_service_eval_script
 
@@ -164,6 +163,7 @@ JSON:
                 prompt = self.build_prompt(context)
                 self.logger.debug(f"attempt {attempt}, prompt: {prompt[:200]}...")
 
+                from utils.llm import get_response_from_llm, extract_json_between_markers
                 text, msg_history = get_response_from_llm(
                     prompt,
                     client=self.llm,
