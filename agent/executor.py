@@ -44,7 +44,7 @@ class Executor(EvalRetryAgent):
 最终结果需写入 result.json 文件。
 
 如果 image_config 中包含 service_profile：
-- 优先采用“yuansheng 风格”两阶段流程：先确保工作容器环境可用，再在容器内启动/检查模型服务，最后对 OpenAI 兼容接口做评测。
+- 优先采用“tangyufeng 风格”两阶段流程：先确保工作容器环境可用，再在容器内启动/检查模型服务，最后对 OpenAI 兼容接口做评测。
 - 优先检查 healthcheck_path 对应接口是否已经可用；如果已可用，不要重复启动服务。
 - 如果未就绪，再按 service_profile 中的 env 和 serve_command 启动服务。
 - 结果中至少包含 smoke_passed、success_count、fail_count、avg_latency_ms、p95_latency_ms。
