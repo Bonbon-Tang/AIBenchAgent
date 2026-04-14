@@ -6,6 +6,7 @@ import time
 from typing import Dict, Any, Tuple, List
 from utils.llm import get_response_from_llm, extract_json_between_markers
 from .base import EvalRetryAgent
+from .templates import build_service_eval_script
 
 
 class Executor(EvalRetryAgent):
@@ -135,6 +136,23 @@ JSON:
     def generate_script(self, context: Dict[str, Any], msg_history: List = None) -> Tuple[bool, Dict[str, Any]]:
         if msg_history is None:
             msg_history = []
+
+        image_config = context.get('image_config', {})
+        if image_config.get('service_profile'):
+            script_name, script_content = build_service_eval_script(context)
+            is_valid, validation_error = self.validate_script(script_content)
+            if not is_valid:
+                return False, {
+                    'error': f'模板脚本验证失败: {validation_error}',
+                    'msg_history': msg_history,
+                }
+            self.logger.info(f"使用 service_profile 固定模板生成评测脚本: {script_name}")
+            return True, {
+                'script_content': script_content,
+                'script_name': script_name,
+                'attempts': 1,
+                'msg_history': msg_history,
+            }
 
         max_format_retries = 3
         format_errors = []
