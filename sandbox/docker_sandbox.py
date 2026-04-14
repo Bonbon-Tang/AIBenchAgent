@@ -17,8 +17,9 @@ class DockerSandbox(SandboxInterface):
 
     def execute(self, command, timeout=300):
         try:
-            if self.container_id:
-                full_command = f"docker exec {self.container_id} {command}"
+            resolved_id = self.resolve_container_id()
+            if resolved_id:
+                full_command = f"docker exec {resolved_id} {command}"
             else:
                 full_command = command
             self.logger.info(f"执行命令: {full_command}")
@@ -40,7 +41,8 @@ class DockerSandbox(SandboxInterface):
 
     def upload_file(self, local_path, remote_path):
         try:
-            if not self.container_id:
+            resolved_id = self.resolve_container_id()
+            if not resolved_id:
                 self.logger.error("容器未创建，无法上传文件")
                 return False, "", "容器未创建，无法上传文件", 1
 
@@ -48,7 +50,7 @@ class DockerSandbox(SandboxInterface):
             if remote_dir:
                 output, error, exit_code = self.execute(f"mkdir -p {remote_dir}")
 
-            cmd = f"docker cp {local_path} {self.container_id}:{remote_path}"
+            cmd = f"docker cp {local_path} {resolved_id}:{remote_path}"
             self.logger.info(f"上传文件: {cmd}")
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
 
@@ -60,7 +62,8 @@ class DockerSandbox(SandboxInterface):
 
     def download_file(self, remote_path, local_path):
         try:
-            if not self.container_id:
+            resolved_id = self.resolve_container_id()
+            if not resolved_id:
                 self.logger.error("容器未创建，无法下载文件")
                 return False, "", "容器未创建，无法下载文件", 1
 
@@ -68,7 +71,7 @@ class DockerSandbox(SandboxInterface):
             if local_dir:
                 os.makedirs(local_dir, exist_ok=True)
 
-            cmd = f"docker cp {self.container_id}:{remote_path} {local_path}"
+            cmd = f"docker cp {resolved_id}:{remote_path} {local_path}"
             self.logger.info(f"下载文件: {cmd}")
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
 
@@ -78,16 +81,62 @@ class DockerSandbox(SandboxInterface):
             self.logger.error(f"文件下载失败: {str(e)}")
             return False, "", str(e), 1
 
+    def set_container(self, *, container_id=None, container_name=None):
+        if container_id:
+            self.container_id = container_id
+        if container_name:
+            self.container_name = container_name
+
+    def resolve_container_id(self):
+        target = self.container_id or self.container_name
+        if not target:
+            return None
+        cmd = f"docker inspect -f '{{{{.Id}}}}' {target}"
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        if result.returncode == 0 and result.stdout.strip():
+            self.container_id = result.stdout.strip()
+            return self.container_id
+        return None
+
+    def container_exists(self, name):
+        cmd = f"docker inspect {name}"
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        return result.returncode == 0
+
+    def get_container_state(self, name):
+        cmd = f"docker inspect -f '{{{{.State.Status}}}}' {name}"
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        if result.returncode == 0:
+            return result.stdout.strip()
+        return ""
+
+    def is_container_running(self, name):
+        return self.get_container_state(name) == "running"
+
+    def start_existing_container(self, name):
+        if self.is_container_running(name):
+            self.container_name = name
+            self.resolve_container_id()
+            return True, name, "", 0
+
+        cmd = f"docker start {name}"
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        if result.returncode == 0 and result.stdout.strip():
+            self.container_name = name
+            self.resolve_container_id()
+            return True, result.stdout.strip(), result.stderr.strip(), result.returncode
+        return False, result.stdout.strip(), result.stderr.strip(), result.returncode
+
     def check_status(self):
         try:
-            if not self.container_id:
+            resolved_id = self.resolve_container_id()
+            if not resolved_id:
                 return False, "", "容器ID未设置", 1
 
-            cmd = f"docker inspect -f '{{{{.State.Running}}}}' {self.container_id}"
-            output, error, exit_code = self.execute(cmd)
-
-            status = exit_code == 0 and "true" in output.lower()
-            return status, output, error, exit_code
+            cmd = f"docker inspect -f '{{{{.State.Running}}}}' {resolved_id}"
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            status = result.returncode == 0 and "true" in result.stdout.lower()
+            return status, result.stdout, result.stderr, result.returncode
         except Exception as e:
             self.logger.error(f"状态检查失败: {str(e)}")
             return False, "", str(e), 1
@@ -120,16 +169,19 @@ class DockerSandbox(SandboxInterface):
 
     def remove_container(self):
         try:
-            if not self.container_id:
+            resolved_id = self.resolve_container_id()
+            target = resolved_id or self.container_name
+            if not target:
                 return True, "容器ID为空，无需删除", "", 0
 
-            cmd = f"docker rm -f {self.container_id}"
+            cmd = f"docker rm -f {target}"
             self.logger.info(f"删除容器: {cmd}")
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
 
             success = result.returncode == 0
             if success:
                 self.container_id = None
+                self.container_name = None
 
             return success, result.stdout, result.stderr, result.returncode
         except Exception as e:

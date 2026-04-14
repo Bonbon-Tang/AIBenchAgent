@@ -276,6 +276,38 @@ JSON:
             return False, {"error": "配置中缺少image_config，请确保Collector已提供镜像配置"}
         self.logger.info(f"获取到镜像配置: {image_config.get('image_name', '未知')}")
 
+        reuse_existing = bool(image_config.get('reuse_existing_container'))
+        preferred_container_name = image_config.get('container_name') or image_config.get('preferred_container_name')
+        if reuse_existing and preferred_container_name and self.sandbox.container_exists(preferred_container_name):
+            state = self.sandbox.get_container_state(preferred_container_name)
+            if state == 'running':
+                self.sandbox.set_container(container_name=preferred_container_name)
+                self.logger.info(f"检测到可复用且正在运行的工作容器: {preferred_container_name}")
+                return True, {
+                    'container_id': self.sandbox.resolve_container_id(),
+                    'container_name': preferred_container_name,
+                    'chip_type': chip_type,
+                    'application_scenario': application_scenario,
+                    'task_type': task_type,
+                    'image_config': image_config,
+                    'reused_existing_container': True,
+                    'start_output': 'already running',
+                }
+            self.logger.warning(f"检测到同名容器但未运行（state={state}），将尝试启动现有容器: {preferred_container_name}")
+            ok, stdout, stderr, code = self.sandbox.start_existing_container(preferred_container_name)
+            if ok:
+                return True, {
+                    'container_id': self.sandbox.container_id,
+                    'container_name': preferred_container_name,
+                    'chip_type': chip_type,
+                    'application_scenario': application_scenario,
+                    'task_type': task_type,
+                    'image_config': image_config,
+                    'reused_existing_container': True,
+                    'start_output': stdout,
+                }
+            self.logger.warning(f"启动现有容器失败，将继续走常规创建流程: {stderr or stdout}")
+
         # Creator 特有的回调
         def prepare_context(ctx, local_memory):
             context = ctx.copy()
