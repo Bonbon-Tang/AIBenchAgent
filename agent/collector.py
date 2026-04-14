@@ -247,6 +247,16 @@ JSON的字段必须包含以上5个必须收集的信息，且格式必须严格
         if not config.get("image_config"):
             config = self._attach_image_config(config)
 
+        image_config = config.get("image_config") or {}
+        if image_config:
+            image_config.setdefault("network_mode", "host")
+            image_config.setdefault("ipc_mode", "host")
+            image_config.setdefault("entrypoint", "/bin/bash")
+            image_config.setdefault("keepalive_command", ["-lc", "tail -f /dev/null"])
+            if not image_config.get("container_name") and image_config.get("preferred_container_name"):
+                image_config["container_name"] = image_config["preferred_container_name"]
+            config["image_config"] = image_config
+
         self.logger.info(f"从配置文件加载评测配置: {config_path}")
         return config
     
