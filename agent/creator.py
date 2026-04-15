@@ -8,7 +8,6 @@ import random
 import string
 import logging
 from typing import Dict, Any, Tuple, Optional, List
-from utils.llm import get_response_from_llm, extract_json_between_markers
 from sandbox.docker_sandbox import DockerSandbox
 from .base import EvalRetryAgent
 
@@ -123,6 +122,7 @@ JSON:
             prompt = self.build_prompt(context)
 
             self.logger.debug(f"生成容器创建命令的提示词: {prompt[:200]}...")
+            from utils.llm import get_response_from_llm, extract_json_between_markers
             text, msg_history = get_response_from_llm(
                 prompt,
                 client=self.llm,
@@ -166,8 +166,7 @@ JSON:
             "--cap-add=ALL",
             "--security-opt",
             "--device=/dev",
-            "--volume=/:/host",
-            "--network=host"
+            "--volume=/:/host"
         ]
 
         for option in dangerous_options:
@@ -275,6 +274,46 @@ JSON:
             self.logger.error("配置中缺少image_config")
             return False, {"error": "配置中缺少image_config，请确保Collector已提供镜像配置"}
         self.logger.info(f"获取到镜像配置: {image_config.get('image_name', '未知')}")
+
+        reuse_existing = bool(image_config.get('reuse_existing_container'))
+        preferred_container_name = image_config.get('container_name') or image_config.get('preferred_container_name')
+        if reuse_existing and preferred_container_name and self.sandbox.container_exists(preferred_container_name):
+            state = self.sandbox.get_container_state(preferred_container_name)
+            if state == 'running':
+                self.sandbox.set_container(container_name=preferred_container_name)
+                self.logger.info(f"检测到可复用且正在运行的工作容器: {preferred_container_name}")
+                return True, {
+                    'container_id': self.sandbox.resolve_container_id(),
+                    'container_name': preferred_container_name,
+                    'chip_type': chip_type,
+                    'application_scenario': application_scenario,
+                    'task_type': task_type,
+                    'image_config': image_config,
+                    'workspace_mode': image_config.get('workspace_mode', 'reuse_or_workspace_container'),
+                    'reused_existing_container': True,
+                    'start_output': 'already running',
+                }
+            self.logger.warning(f"检测到同名容器但未运行（state={state}），将删除后重建: {preferred_container_name}")
+            self.sandbox.set_container(container_name=preferred_container_name)
+            self.sandbox.remove_container()
+
+        create_directly = bool(image_config.get('projectten_source')) or bool(image_config.get('service_profile'))
+        if create_directly:
+            self.logger.info("检测到 ProjectTen/service_profile 工作负载，按结构化 image_config 直接创建工作容器")
+            ok, stdout, stderr, code = self.sandbox.create_container_from_config(image_config)
+            if ok:
+                return True, {
+                    'container_id': self.sandbox.container_id,
+                    'container_name': self.sandbox.container_name or preferred_container_name,
+                    'chip_type': chip_type,
+                    'application_scenario': application_scenario,
+                    'task_type': task_type,
+                    'image_config': image_config,
+                    'workspace_mode': image_config.get('workspace_mode', 'reuse_or_workspace_container'),
+                    'reused_existing_container': False,
+                    'start_output': stdout,
+                }
+            self.logger.warning(f"结构化创建工作容器失败，将回退到 LLM 生成命令: {stderr or stdout}")
 
         # Creator 特有的回调
         def prepare_context(ctx, local_memory):

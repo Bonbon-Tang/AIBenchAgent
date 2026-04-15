@@ -5,7 +5,6 @@ import time
 import logging
 from typing import Dict, Any, Tuple, List, Callable, Optional
 from sandbox.docker_sandbox import DockerSandbox
-from .evaluator import Evaluator
 
 
 class EvalRetryAgent:
@@ -19,7 +18,8 @@ class EvalRetryAgent:
         self.logger = logging.getLogger(self.__class__.__module__)
         self.logger.setLevel(logging.INFO)
 
-        if evaluator is None:
+        if evaluator is None and llm is not None:
+            from .evaluator import Evaluator
             self.evaluator = Evaluator(llm, model_name)
         else:
             self.evaluator = evaluator
@@ -111,6 +111,9 @@ class EvalRetryAgent:
                 continue
 
             if attempt < self.max_retries:
+                if self.evaluator is None:
+                    local_memory.append(on_failure_record(attempt, failed_command, error_msg, None))
+                    return False, on_unrecoverable(error_msg, '未配置Evaluator，无法继续自动修复', context, attempt, local_memory)
                 self.logger.info("请求Evaluator评估...")
                 eval_result = self.evaluator.evaluate(
                     failed_command=failed_command,
@@ -173,6 +176,13 @@ class EvalRetryAgent:
             self.logger.info(f"尝试在容器内执行命令，第 {attempt} 次尝试...")
 
             if attempt > 1:
+                if self.evaluator is None:
+                    return False, {
+                        "error": last_error,
+                        "analysis": "未配置Evaluator，无法自动修复失败命令",
+                        "attempts": attempt - 1,
+                        "local_memory": local_memory,
+                    }
                 self.logger.info("请求Evaluator评估...")
                 eval_result = self.evaluator.evaluate(
                     failed_command=last_command,
