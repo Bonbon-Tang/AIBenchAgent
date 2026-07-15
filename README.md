@@ -24,6 +24,96 @@ python agent.py
 python agent.py --config config/task/h200_language_operator.json
 ```
 
+## 910B 执行节点 HTTP 服务
+
+`serve.py` 将 AIBenchAgent 作为 ProjectTen 的异步执行节点运行。该入口不调用
+LLM；管理节点提交任务后，服务在本机启动 Docker 容器，并持久化任务状态、日志和
+结果。
+
+### 启动
+
+服务必须部署在能够直接访问 Ascend 设备和 Docker daemon 的 910B 宿主机：
+
+```bash
+python3 -m pip install -r requirements.txt
+
+export AIBENCH_DATA_DIR=/var/lib/aibench/jobs
+export AIBENCH_MAX_WORKERS=2
+export AIBENCH_ALLOWED_VOLUME_ROOTS=/models,/opt/aibench/workloads,/usr/local/Ascend
+
+python3 serve.py --host 0.0.0.0 --port 8080 \
+  --data-dir /var/lib/aibench/jobs --workers 2
+```
+
+部署前检查：
+
+```bash
+docker --version
+npu-smi info
+ls -l /dev/davinci0 /dev/davinci_manager /dev/devmm_svm /dev/hisi_hdc
+curl http://127.0.0.1:8080/health
+```
+
+生产环境应通过防火墙或反向代理只允许 ProjectTen 管理节点访问该端口。
+
+### API
+
+```text
+POST /api/v1/jobs                 提交任务，返回 job_id
+GET  /api/v1/jobs/{job_id}        查询状态和进度
+GET  /api/v1/jobs/{job_id}/result 获取完成结果
+GET  /api/v1/jobs/{job_id}/logs   获取容器日志
+POST /api/v1/jobs/{job_id}/cancel 取消任务并删除容器
+```
+
+请求示例见：
+
+```text
+config/task/projectten_910b_service_job.json
+```
+
+提交任务：
+
+```bash
+curl -sS -X POST http://127.0.0.1:8080/api/v1/jobs \
+  -H 'Content-Type: application/json' \
+  --data @config/task/projectten_910b_service_job.json
+```
+
+容器执行契约：
+
+1. Agent 将每个任务的独立目录挂载为 `/workspace/results`。
+2. `image.command` 必须执行完整评测并退出，不能只启动永久驻留服务。
+3. 成功退出前必须写 `/workspace/results/result.json`。
+4. 结果至少包含 `status` 和 `metrics` 对象，例如：
+
+```json
+{
+  "status": "completed",
+  "metrics": {
+    "throughput": 31.8,
+    "throughput_unit": "tokens/s",
+    "avg_latency_ms": 412.3,
+    "p95_latency_ms": 471.6
+  }
+}
+```
+
+缺失/非法的结果文件、非零退出码、超时以及结果声明失败都会使 Job 失败，不会生成
+模拟成功结果。任务数据保存在：
+
+```text
+<AIBENCH_DATA_DIR>/<job_id>/request.json
+<AIBENCH_DATA_DIR>/<job_id>/state.json
+<AIBENCH_DATA_DIR>/<job_id>/result.json
+<AIBENCH_DATA_DIR>/<job_id>/container.log
+```
+
+Ascend 默认映射 `device_ids` 对应的 `/dev/davinciN`，以及
+`/dev/davinci_manager`、`/dev/devmm_svm`、`/dev/hisi_hdc`。`gpus` 默认为
+`null`，不会给 Ascend 容器添加 NVIDIA 的 `--gpus all`。任务提交者只能挂载
+`AIBENCH_ALLOWED_VOLUME_ROOTS` 中声明的宿主机目录。
+
 ## ProjectTen v2 → AIBenchAgent（H200 / tangyufeng）执行说明
 
 这条链路面向当前的真实使用方式：

@@ -1,0 +1,30 @@
+{
+  "external_task_id": "projectten-123",
+  "task_type": "model_deployment",
+  "scenario": "llm",
+  "chip": "Ascend_910B",
+  "chip_count": 1,
+  "image": {
+    "name": "REPLACE_WITH_ASCEND_MODEL_IMAGE",
+    "command": "python3 /workspace/benchmark.py --output /workspace/results/result.json",
+    "environment": {},
+    "volumes": [
+      "/models:/models:ro",
+      "/opt/aibench/workloads:/workspace:ro"
+    ]
+  },
+  "resources": {
+    "device_ids": [0],
+    "gpus": null,
+    "network_mode": "host",
+    "ipc_mode": "host",
+    "timeout_seconds": 1800,
+    "cleanup_container": true
+  },
+  "benchmark": {
+    "warmup": 3,
+    "repeat": 10,
+    "concurrency": 1,
+    "max_tokens": 128
+  }
+}
