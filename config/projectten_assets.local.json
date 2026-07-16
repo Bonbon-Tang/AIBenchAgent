@@ -1,5 +1,23 @@
 {
   "images": {
+    "53": {
+      "image_name": "swr.cn-north-1.myhuaweicloud.com/deeplink/ascend-audio-asr",
+      "container_name": "aibench-asr",
+      "reuse_existing_container": false,
+      "workspace_mode": "workspace_container",
+      "environment": {},
+      "volumes": [
+        "/mnt/nvme1n1:/mnt/nvme1n1:ro"
+      ],
+      "base_url": "http://127.0.0.1:18090",
+      "service_profile": {
+        "base_url": "http://127.0.0.1:18090",
+        "healthcheck_path": "/v1/models",
+        "env": {}
+      },
+      "start_command_hints": "使用 host 网络、IPC=host 启动 ASR 容器；如果需要启动模型服务，请在容器内启动并确保宿主机可通过 http://127.0.0.1:18090 访问。",
+      "task_command_hints": "在容器内执行 ASR 评测脚本，完成健康检查、样例音频推理、WER 统计，并将结果写入 /workspace/results/result.json。"
+    },
     "70": {
       "image_name": "registry.h.pjlab.org.cn/ailab-pj/vllm:0.16.2rc2.g21dfb842d.cu128",
       "container_name": "tangyufeng",
@@ -29,6 +47,9 @@
   "tools": {
     "27": {
       "test_case": "llm_throughput"
+    },
+    "155": {
+      "test_case": "asr_smoke"
     }
   }
 }
