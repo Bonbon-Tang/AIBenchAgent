@@ -44,7 +44,7 @@ class DockerJobExecutor:
         self.docker_binary = docker_binary
         configured_roots = allowed_volume_roots or os.getenv(
             "AIBENCH_ALLOWED_VOLUME_ROOTS",
-            "/models,/opt/aibench/workloads,/usr/local/Ascend",
+            "/models,/opt/aibench,/mnt/nvme1n1,/usr/local/Ascend,/usr/local/dcmi,/usr/local/bin/npu-smi,/etc/ascend_install.info",
         ).split(",")
         self.allowed_volume_roots = [Path(root).resolve() for root in configured_roots if root]
         self._containers: Dict[str, str] = {}
@@ -158,8 +158,6 @@ class DockerJobExecutor:
             command.extend(["--shm-size", resources.shm_size])
         for device in devices:
             command.extend(["--device", device])
-        for extra_dev in getattr(resources, "extra_devices", []):
-            command.extend(["--device", extra_dev])
         command.extend(["-v", f"{job_dir.resolve()}:/workspace/results"])
         for volume in image.volumes:
             self._validate_volume(volume)
@@ -185,6 +183,7 @@ class DockerJobExecutor:
         if not devices:
             devices = [f"/dev/davinci{device_id}" for device_id in request.resources.device_ids]
             devices.extend(["/dev/davinci_manager", "/dev/devmm_svm", "/dev/hisi_hdc"])
+        devices.extend(request.resources.extra_devices)
         invalid = [device for device in devices if not self._DEVICE_PATTERN.fullmatch(device)]
         if invalid:
             raise ExecutionError(

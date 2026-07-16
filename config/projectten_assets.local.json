@@ -2,23 +2,22 @@
   "images": {
     "53": {
       "image_name": "swr.cn-north-1.myhuaweicloud.com/deeplink/ascend-audio-asr:latest",
+      "skill_name": "ascend-audio-asr",
+      "supported_model": "SenseVoiceSmall",
+      "skill_source": "https://github.com/DeepLink-org/DeepEval-Skills/tree/main/skills/Ascend/audio/ascend-audio-asr",
       "container_name": "aibench-asr",
       "reuse_existing_container": false,
       "workspace_mode": "workspace_container",
       "privileged": true,
       "shm_size": "128g",
       "extra_devices": [
-        "/dev/davinci0",
         "/dev/davinci1",
         "/dev/davinci2",
         "/dev/davinci3",
         "/dev/davinci4",
         "/dev/davinci5",
         "/dev/davinci6",
-        "/dev/davinci7",
-        "/dev/davinci_manager",
-        "/dev/devmm_svm",
-        "/dev/hisi_hdc"
+        "/dev/davinci7"
       ],
       "extra_volumes": [
         "/usr/local/dcmi:/usr/local/dcmi:rw",
@@ -29,7 +28,9 @@
       ],
       "environment": {},
       "volumes": [
-        "/mnt/nvme1n1:/mnt/nvme1n1:ro"
+        "/opt/aibench/assets/asr/models:/workspace/models:ro",
+        "/opt/aibench/assets/asr/datasets:/workspace/datasets:ro",
+        "/opt/aibench/assets/asr/config:/workspace/config:ro"
       ],
       "base_url": "http://127.0.0.1:18090",
       "service_profile": {
@@ -39,7 +40,7 @@
       },
       "start_command_hints": "使用 --privileged=true --shm-size=128g host 网络启动 ASR 容器。",
       "task_command_hints": "在容器内执行 ASR 评测脚本，完成健康检查、样例音频推理、CER/WER 统计，并将结果写入 /workspace/results/result.json。",
-      "task_command": "MODEL_NAME=SenseVoiceSmall && DATASET_NAME=kespeech-beijing && mkdir -p /workspace/logs && python3 -u /workspace/infer_runner.py --model_dir /workspace/models/speech_recognition/${MODEL_NAME} --output_dir /workspace/results/${MODEL_NAME}/predictions/ --acc_report /workspace/results/${MODEL_NAME}/acc_report.json --data_set /workspace/config/data_set.cfg --dataset ${DATASET_NAME} 2>&1 | tee /workspace/logs/${MODEL_NAME}/test.log && python3 -c \"import json,os; r=open('/workspace/results/${MODEL_NAME}/acc_report.json'); acc=json.load(r); rec=acc.get('records',[]); res=[{'dataset':i.get('dataset',''),'avg_inference_time':i.get('avg_inference_time',0),'success_rate':i.get('success_rate',0),'total_samples':i.get('total_samples',0),'cer':i.get('metrics',{}).get('cer'),'wer':i.get('metrics',{}).get('wer')} for i in rec]; open('/workspace/results/result.json','w').write(json.dumps(res))\""
+      "task_command": "MODEL_NAME=SenseVoiceSmall && DATASET_NAME=kespeech-beijing && mkdir -p /workspace/logs/${MODEL_NAME} && python3 -u /workspace/infer_runner.py --model_dir /workspace/models/speech_recognition/${MODEL_NAME} --output_dir /workspace/results/${MODEL_NAME}/predictions/ --acc_report /workspace/results/${MODEL_NAME}/acc_report.json --data_set /workspace/config/data_set.cfg --dataset ${DATASET_NAME} 2>&1 | tee /workspace/logs/${MODEL_NAME}/test.log && python3 -c \"import json; p='/workspace/results/${MODEL_NAME}/acc_report.json'; acc=json.load(open(p)); records=acc.get('records',[]); first=records[0] if records else {}; details=first.get('metrics',{}); metrics={'dataset':first.get('dataset',''),'avg_inference_time':first.get('avg_inference_time',0),'success_rate':first.get('success_rate',0),'total_samples':first.get('total_samples',0),'cer':details.get('cer'),'wer':details.get('wer')}; json.dump({'status':'completed','metrics':metrics,'evaluation_results':{'records':records}},open('/workspace/results/result.json','w'),ensure_ascii=False,indent=2)\""
     },
     "70": {
       "image_name": "registry.h.pjlab.org.cn/ailab-pj/vllm:0.16.2rc2.g21dfb842d.cu128",
@@ -63,23 +64,22 @@
     },
     "172": {
       "image_name": "swr.cn-north-1.myhuaweicloud.com/deeplink/ascend-audio-asr:latest",
+      "skill_name": "ascend-audio-asr",
+      "supported_model": "SenseVoiceSmall",
+      "skill_source": "https://github.com/DeepLink-org/DeepEval-Skills/tree/main/skills/Ascend/audio/ascend-audio-asr",
       "container_name": "aibench-asr",
       "reuse_existing_container": false,
       "workspace_mode": "workspace_container",
       "privileged": true,
       "shm_size": "128g",
       "extra_devices": [
-        "/dev/davinci0",
         "/dev/davinci1",
         "/dev/davinci2",
         "/dev/davinci3",
         "/dev/davinci4",
         "/dev/davinci5",
         "/dev/davinci6",
-        "/dev/davinci7",
-        "/dev/davinci_manager",
-        "/dev/devmm_svm",
-        "/dev/hisi_hdc"
+        "/dev/davinci7"
       ],
       "extra_volumes": [
         "/usr/local/dcmi:/usr/local/dcmi:rw",
@@ -90,7 +90,9 @@
       ],
       "environment": {},
       "volumes": [
-        "/mnt/nvme1n1:/mnt/nvme1n1:ro"
+        "/opt/aibench/assets/asr/models:/workspace/models:ro",
+        "/opt/aibench/assets/asr/datasets:/workspace/datasets:ro",
+        "/opt/aibench/assets/asr/config:/workspace/config:ro"
       ],
       "base_url": "http://127.0.0.1:18090",
       "service_profile": {
@@ -100,7 +102,7 @@
       },
       "start_command_hints": "使用 --privileged=true --shm-size=128g host 网络启动 ASR 容器。",
       "task_command_hints": "在容器内执行 ASR 评测脚本，完成健康检查、样例音频推理、CER/WER 统计，并将结果写入 /workspace/results/result.json。",
-      "task_command": "MODEL_NAME=SenseVoiceSmall && DATASET_NAME=kespeech-beijing && mkdir -p /workspace/logs && python3 -u /workspace/infer_runner.py --model_dir /workspace/models/speech_recognition/${MODEL_NAME} --output_dir /workspace/results/${MODEL_NAME}/predictions/ --acc_report /workspace/results/${MODEL_NAME}/acc_report.json --data_set /workspace/config/data_set.cfg --dataset ${DATASET_NAME} 2>&1 | tee /workspace/logs/${MODEL_NAME}/test.log && python3 -c \"import json,os; r=open('/workspace/results/${MODEL_NAME}/acc_report.json'); acc=json.load(r); rec=acc.get('records',[]); res=[{'dataset':i.get('dataset',''),'avg_inference_time':i.get('avg_inference_time',0),'success_rate':i.get('success_rate',0),'total_samples':i.get('total_samples',0),'cer':i.get('metrics',{}).get('cer'),'wer':i.get('metrics',{}).get('wer')} for i in rec]; open('/workspace/results/result.json','w').write(json.dumps(res))\""
+      "task_command": "MODEL_NAME=SenseVoiceSmall && DATASET_NAME=kespeech-beijing && mkdir -p /workspace/logs/${MODEL_NAME} && python3 -u /workspace/infer_runner.py --model_dir /workspace/models/speech_recognition/${MODEL_NAME} --output_dir /workspace/results/${MODEL_NAME}/predictions/ --acc_report /workspace/results/${MODEL_NAME}/acc_report.json --data_set /workspace/config/data_set.cfg --dataset ${DATASET_NAME} 2>&1 | tee /workspace/logs/${MODEL_NAME}/test.log && python3 -c \"import json; p='/workspace/results/${MODEL_NAME}/acc_report.json'; acc=json.load(open(p)); records=acc.get('records',[]); first=records[0] if records else {}; details=first.get('metrics',{}); metrics={'dataset':first.get('dataset',''),'avg_inference_time':first.get('avg_inference_time',0),'success_rate':first.get('success_rate',0),'total_samples':first.get('total_samples',0),'cer':details.get('cer'),'wer':details.get('wer')}; json.dump({'status':'completed','metrics':metrics,'evaluation_results':{'records':records}},open('/workspace/results/result.json','w'),ensure_ascii=False,indent=2)\""
     }
   },
   "tools": {

@@ -115,6 +115,33 @@ def test_docker_command_uses_ascend_devices_and_no_gpu_flag(tmp_path):
     assert command[-2:] == ["python3", "/workspace/benchmark.py"]
 
 
+def test_docker_command_supports_asr_runtime_options(tmp_path):
+    request_payload = payload()
+    request_payload["resources"].update({
+        "privileged": True,
+        "shm_size": "128g",
+        "extra_devices": ["/dev/davinci1"],
+        "extra_volumes": [
+            "/usr/local/dcmi:/usr/local/dcmi:rw",
+            "/etc/ascend_install.info:/etc/ascend_install.info:rw",
+        ],
+    })
+    from aibench_service.schemas import JobRequest
+
+    request = JobRequest.model_validate(request_payload)
+    executor = DockerJobExecutor()
+    command = executor.build_command(
+        request,
+        tmp_path,
+        "aibench-asr-test",
+        executor._resolve_devices(request),
+    )
+    assert "--privileged=true" in command
+    assert command[command.index("--shm-size") + 1] == "128g"
+    assert "/dev/davinci1" in command
+    assert "/usr/local/dcmi:/usr/local/dcmi:rw" in command
+
+
 def test_rejects_non_ascend_device_mapping(tmp_path):
     request_payload = payload()
     request_payload["resources"]["devices"] = ["/dev/sda"]
