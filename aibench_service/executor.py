@@ -152,12 +152,21 @@ class DockerJobExecutor:
             command.append(f"--ipc={resources.ipc_mode}")
         if resources.gpus:
             command.extend(["--gpus", resources.gpus])
+        if resources.privileged:
+            command.append("--privileged=true")
+        if resources.shm_size:
+            command.extend(["--shm-size", resources.shm_size])
         for device in devices:
             command.extend(["--device", device])
+        for extra_dev in getattr(resources, "extra_devices", []):
+            command.extend(["--device", extra_dev])
         command.extend(["-v", f"{job_dir.resolve()}:/workspace/results"])
         for volume in image.volumes:
             self._validate_volume(volume)
             command.extend(["-v", volume])
+        for extra_vol in getattr(resources, "extra_volumes", []):
+            self._validate_volume(extra_vol)
+            command.extend(["-v", extra_vol])
         for key, value in image.environment.items():
             command.extend(["-e", f"{key}={value}"])
         if image.working_dir:

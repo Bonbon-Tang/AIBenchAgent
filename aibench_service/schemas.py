@@ -17,7 +17,7 @@ class ImageSpec(BaseModel):
 
 
 class ResourceSpec(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="allow")
 
     device_ids: List[int] = Field(default_factory=lambda: [0])
     devices: List[str] = Field(default_factory=list)
@@ -26,6 +26,10 @@ class ResourceSpec(BaseModel):
     ipc_mode: Optional[str] = "host"
     timeout_seconds: int = Field(default=1800, ge=1, le=86400)
     cleanup_container: bool = True
+    privileged: bool = False
+    shm_size: Optional[str] = None
+    extra_devices: List[str] = Field(default_factory=list)
+    extra_volumes: List[str] = Field(default_factory=list)
 
     @field_validator("device_ids")
     @classmethod
