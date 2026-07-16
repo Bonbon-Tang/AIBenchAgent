@@ -28,9 +28,9 @@
       ],
       "environment": {},
       "volumes": [
-        "/opt/aibench/assets/asr/models:/workspace/models:ro",
-        "/opt/aibench/assets/asr/datasets:/workspace/datasets:ro",
-        "/opt/aibench/assets/asr/config:/workspace/config:ro"
+        "/mnt/agentbench/asr-eval/models/speech_recognition:/workspace/models:ro",
+        "/mnt/agentbench/asr-eval/datasets/speech_recognition:/workspace/datasets:ro",
+        "/mnt/agentbench/asr-eval/config:/workspace/config:ro"
       ],
       "base_url": "http://127.0.0.1:18090",
       "service_profile": {
@@ -90,9 +90,9 @@
       ],
       "environment": {},
       "volumes": [
-        "/opt/aibench/assets/asr/models:/workspace/models:ro",
-        "/opt/aibench/assets/asr/datasets:/workspace/datasets:ro",
-        "/opt/aibench/assets/asr/config:/workspace/config:ro"
+        "/mnt/agentbench/asr-eval/models/speech_recognition:/workspace/models:ro",
+        "/mnt/agentbench/asr-eval/datasets/speech_recognition:/workspace/datasets:ro",
+        "/mnt/agentbench/asr-eval/config:/workspace/config:ro"
       ],
       "base_url": "http://127.0.0.1:18090",
       "service_profile": {
